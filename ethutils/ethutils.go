@@ -271,9 +271,9 @@ func SignToTopic(funcSign string) (topicSign string) {
 	return
 }
 
-func SendEth(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, value *big.Int) (*types.Transaction, error) {
+func SendEth(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, value *big.Int, chainID *big.Int) (*types.Transaction, error) {
 
-	auth, err := GetAuth(ethCli, pk)
+	auth, err := GetAuth(ethCli, pk, chainID)
 	if err != nil {
 		return nil, err
 	}
@@ -281,9 +281,11 @@ func SendEth(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, 
 	var data []byte
 	tx := types.NewTransaction(auth.Nonce.Uint64(), to, value, auth.GasLimit, auth.GasPrice, data)
 
-	chainID, err := ethCli.NetworkID(context.Background())
-	if err != nil {
-		return nil, err
+	if chainID == nil {
+		chainID, err = ethCli.ChainID(context.Background())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), pk)
@@ -298,9 +300,9 @@ func SendEth(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, 
 	return signedTx, nil
 }
 
-func SendEthSubFee(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, value *big.Int) (*types.Transaction, error) {
+func SendEthSubFee(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, value *big.Int, chainID *big.Int) (*types.Transaction, error) {
 
-	auth, err := GetAuth(ethCli, pk)
+	auth, err := GetAuth(ethCli, pk, chainID)
 	if err != nil {
 		return nil, err
 	}
@@ -313,11 +315,12 @@ func SendEthSubFee(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Add
 	var data []byte
 	tx := types.NewTransaction(auth.Nonce.Uint64(), to, value.Sub(value, feeAmount), auth.GasLimit, auth.GasPrice, data)
 
-	chainID, err := ethCli.NetworkID(context.Background())
-	if err != nil {
-		return nil, err
+	if chainID == nil {
+		chainID, err = ethCli.ChainID(context.Background())
+		if err != nil {
+			return nil, err
+		}
 	}
-
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), pk)
 	if err != nil {
 		return nil, err
