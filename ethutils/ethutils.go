@@ -220,33 +220,40 @@ func InitEthClient(url string) (ethClient *ethclient.Client, rpcClient *rpc.Clie
 	return
 }
 
-func GetAuth(ethCli *ethclient.Client, privateKey *ecdsa.PrivateKey) (auth *bind.TransactOpts, err error) {
+func GetAuth(ethCli *ethclient.Client, privateKey *ecdsa.PrivateKey, chainID *big.Int) (auth *bind.TransactOpts, err error) {
 	fromAddress, err := GetAddressFromPrivateKey(privateKey)
 	if err != nil {
-		return
+		return auth, err
 	}
 	nonce, err := ethCli.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
-		return
+		return auth, err
 	}
 	gasPrice, err := ethCli.SuggestGasPrice(context.Background())
 	if err != nil {
-		return
+		return auth, err
 	}
-	auth = bind.NewKeyedTransactor(privateKey)
+	if chainID == nil {
+		auth = bind.NewKeyedTransactor(privateKey)
+	} else {
+		auth, err = bind.NewKeyedTransactorWithChainID(privateKey, chainID)
+		if err != nil {
+			return auth, err
+		}
+	}
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0) // in wei
 	auth.GasLimit = uint64(0)  // in units
 	auth.GasPrice = gasPrice
-	return
+	return auth, err
 }
 
-func GetAuth2(ethCli *ethclient.Client, pk string) (auth *bind.TransactOpts, err error) {
+func GetAuth2(ethCli *ethclient.Client, pk string, chainID *big.Int) (auth *bind.TransactOpts, err error) {
 	privateKey, err := crypto.HexToECDSA(pk)
 	if err != nil {
-		return
+		return auth, err
 	}
-	return GetAuth(ethCli, privateKey)
+	return GetAuth(ethCli, privateKey, chainID)
 }
 
 func SignToMethodID(funcSign string) (methodID string) {
