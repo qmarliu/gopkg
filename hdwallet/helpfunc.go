@@ -1,13 +1,14 @@
 package hdwallet
 
 import (
-	"chill/contracts"
-	"chill/contracts/ERC20"
-	"chill/contracts/ERC721"
 	"context"
 	"fmt"
 	"math/big"
 	"strings"
+
+	contracts "github.com/qmarliu/gopkg/contract"
+	"github.com/qmarliu/gopkg/contract/ERC20"
+	"github.com/qmarliu/gopkg/contract/ERC721"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
