@@ -2,7 +2,6 @@ package utils
 
 //http request 工具函数
 import (
-	"chill/internal/log"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +11,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/qmarliu/gopkg/log"
 
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpproxy"
