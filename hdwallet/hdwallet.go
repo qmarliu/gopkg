@@ -17,6 +17,9 @@ func InitHDWallet(mneomonic string) (err error) {
 	hdKey, err = hdwallet.NewKey(
 		hdwallet.Mnemonic(mneomonic),
 	)
+	if err != nil {
+		return SetMasterPk(0)
+	}
 	return err
 }
 
