@@ -1,9 +1,10 @@
 package hdwallet
 
 import (
-	encrypt "chill/internal/encrypt/aes"
 	"encoding/base64"
 	"testing"
+
+	encrypt "github.com/qmarliu/gopkg/encrypt/aes"
 
 	"github.com/qmarliu/hdwallet"
 )
