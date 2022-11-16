@@ -12,6 +12,7 @@ type Zap struct {
 	MaxAge        int      `toml:"maxAge"`
 	RotationTime  int      `toml:"rotationTime"`
 	GinSkipPath   []string `toml:"ginSkipPath"`
+	GinLogTest    bool     `toml:"ginLogTest"`
 }
 
 type Mysql struct {
