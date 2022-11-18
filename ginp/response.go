@@ -12,7 +12,7 @@ type Response struct {
 	Msg  string      `json:"msg"`
 }
 
-const (
+var ( // 不声明为const,有的程序需要SUCCESS是200,ERROR是-1。方便主程序修改
 	ERROR   = 7
 	SUCCESS = 0
 )
@@ -24,6 +24,14 @@ func Result(code int, data interface{}, msg string, c *gin.Context) {
 		data,
 		msg,
 	})
+}
+
+func SetSuccessCode(code int) {
+	SUCCESS = code
+}
+
+func SetErrorCode(code int) {
+	ERROR = code
 }
 
 func Ok(c *gin.Context) {
