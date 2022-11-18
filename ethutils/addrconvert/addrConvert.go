@@ -1,4 +1,4 @@
-package ethutils
+package addrconvert
 
 import (
 	"fmt"
