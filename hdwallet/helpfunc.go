@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"strings"
 
-	contracts "github.com/qmarliu/gopkg/contract"
-	"github.com/qmarliu/gopkg/contract/ERC20"
-	"github.com/qmarliu/gopkg/contract/ERC721"
+	"github.com/qmarliu/gopkg/contracts"
+	"github.com/qmarliu/gopkg/contracts/ERC20"
+	"github.com/qmarliu/gopkg/contracts/ERC721"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
