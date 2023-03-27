@@ -14,11 +14,38 @@ import (
 
 func Init(mysqlConfig params.Mysql) (*gorm.DB, error) {
 	if mysqlConfig.DbName == "" {
-		return nil, fmt.Errorf("The name of the database is not specified")
+		return nil, fmt.Errorf("the name of the database is not specified")
 	}
-	dsn := mysqlConfig.Username + ":" + mysqlConfig.Password + "@tcp(" +
-		mysqlConfig.Path + ")/" + mysqlConfig.DbName + "?" + mysqlConfig.Config
+	// dsn := mysqlConfig.Username + ":" + mysqlConfig.Password + "@tcp(" +
+	// 	mysqlConfig.Path + ")/" + mysqlConfig.DbName + "?" + mysqlConfig.Config
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?%s",
+		mysqlConfig.Username, mysqlConfig.Password, mysqlConfig.Path, "mysql", mysqlConfig.Config)
 
+	var db *gorm.DB
+	var err1 error
+	db, err := gorm.Open(mysql.Open(dsn), nil)
+	if err != nil {
+		fmt.Println("Open failed ", err.Error(), dsn)
+	}
+	if err != nil {
+		time.Sleep(time.Duration(30) * time.Second)
+		db, err1 = gorm.Open(mysql.Open(dsn), nil)
+		if err1 != nil {
+			fmt.Println("Open failed ", err1.Error(), dsn)
+			panic(err1.Error())
+		}
+	}
+
+	//Check the database and table during initialization
+	sql := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s default charset utf8 COLLATE utf8_general_ci;", mysqlConfig.DbName)
+	fmt.Println("exec sql: ", sql, " begin")
+	err = db.Exec(sql).Error
+	if err != nil {
+		fmt.Println("Exec failed ", err.Error(), sql)
+		return nil, err
+	}
+	dsn = fmt.Sprintf("%s:%s@tcp(%s)/%s?%s",
+		mysqlConfig.Username, mysqlConfig.Password, mysqlConfig.Path, mysqlConfig.DbName, mysqlConfig.Config)
 	cf := mysql.Config{
 		DSN:                       dsn,   // DSN data source name
 		DefaultStringSize:         512,   // string 类型字段的默认长度
@@ -53,8 +80,6 @@ func Init(mysqlConfig params.Mysql) (*gorm.DB, error) {
 		),
 	}
 
-	var db *gorm.DB
-	var err error
 	if db, err = gorm.Open(mysql.New(cf), gormCf); err != nil {
 		return nil, err
 	}
@@ -65,4 +90,5 @@ func Init(mysqlConfig params.Mysql) (*gorm.DB, error) {
 	sqlDB.SetMaxIdleConns(mysqlConfig.MaxIdleConns)
 	sqlDB.SetMaxOpenConns(mysqlConfig.MaxOpenConns)
 	return db, err
+
 }
