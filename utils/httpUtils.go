@@ -30,15 +30,13 @@ var (
 )
 
 func NewHttpRequestWithFasthttp(client *http.Client, reqMethod, reqUrl, postData string, headers map[string]string) ([]byte, error) {
-	log.Debugf("use fasthttp client")
 	transport := client.Transport
 
 	if transport != nil {
 		if proxy, err := transport.(*http.Transport).Proxy(nil); err == nil && proxy != nil {
 			proxyUrl := proxy.String()
-			log.Debugf("proxy url: %v", proxyUrl)
 			if proxy.Scheme != "socks5" {
-				log.Errorf("fasthttp only support the socks5 proxy")
+				log.Error("", "fasthttp only support the socks5 proxy")
 			} else if socksDialer == nil {
 				socksDialer = fasthttpproxy.FasthttpSocksDialer(strings.TrimPrefix(proxyUrl, proxy.Scheme+"://"))
 				fastHttpClient.Dial = socksDialer
@@ -72,7 +70,6 @@ func NewHttpRequestWithFasthttp(client *http.Client, reqMethod, reqUrl, postData
 }
 
 func NewHttpRequest(client *http.Client, reqType string, reqUrl string, postData string, requstHeaders map[string]string) ([]byte, error) {
-	log.Debugf("[%s] request url: %s data: %s", reqType, reqUrl, postData)
 	lib := os.Getenv("HTTP_LIB")
 	if lib == "fasthttp" {
 		return NewHttpRequestWithFasthttp(client, reqType, reqUrl, postData, requstHeaders)
@@ -99,7 +96,7 @@ func NewHttpRequest(client *http.Client, reqType string, reqUrl string, postData
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("%#v", resp)
+	log.Debug("", resp)
 
 	if resp.StatusCode != 200 {
 		return nil, errors.New(fmt.Sprintf("HttpStatusCode:%d ,Desc:%s", resp.StatusCode, string(bodyData)))
