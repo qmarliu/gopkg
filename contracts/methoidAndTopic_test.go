@@ -10,8 +10,6 @@ import (
 	"github.com/shopspring/decimal"
 
 	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/qmarliu/hdwallet"
 )
 
 func TestPrintMethodID(t *testing.T) {
@@ -24,57 +22,6 @@ func TestPrintTopic(t *testing.T) {
 		SignToTopic("Harvest(address,uint256,uint256)"))
 	t.Log("deposit: " +
 		SignToTopic("Deposit(address,uint256)"))
-}
-
-var (
-	ethHdKey     *hdwallet.Key
-	masterWallet hdwallet.Wallet
-	masterAddr   common.Address
-)
-
-// go test -run TestNewMneomonic
-func TestGetPKAndAddress(t *testing.T) {
-
-	var err error
-	ethHdKey, err = hdwallet.NewKey(
-		hdwallet.Mnemonic(
-			"shaft key hidden talent margin game behind belt wolf fall two helmet"),
-	)
-	if err != nil {
-		t.Errorf("NewKey %s\n", err.Error())
-		return
-	}
-
-	masterWallet, err = ethHdKey.GetWallet(
-		hdwallet.CoinType(hdwallet.ETH), hdwallet.AddressIndex(0))
-	if err != nil {
-		t.Errorf("GetWallet %s\n", err.Error())
-		return
-	}
-
-	masterAddrStr, err := masterWallet.GetAddress()
-	if err != nil {
-		t.Errorf("GetAddress %s\n", err.Error())
-		return
-	}
-	masterAddr = common.HexToAddress(masterAddrStr)
-
-	wallet, err := ethHdKey.GetWallet(
-		hdwallet.CoinType(hdwallet.ETH),
-		hdwallet.AddressIndex(1000))
-
-	// pk, err := crypto.HexToECDSA(wallet.GetKey().PrivateHex())
-	// if err != nil {
-	// 	t.Errorf("HexToECDSA %s\n", err.Error())
-	// 	return
-	// }
-	t.Logf("pk %v\n", wallet.GetKey().PrivateHex())
-	addr, err := wallet.GetAddress()
-	if err != nil {
-		t.Errorf("GetAddress %s\n", err.Error())
-		return
-	}
-	t.Logf("address %v\n", addr)
 }
 
 // go test -run TestSendETH
