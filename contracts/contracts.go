@@ -3,7 +3,6 @@ package contracts
 import (
 	"context"
 	"crypto/ecdsa"
-	"fmt"
 	"math/big"
 
 	"github.com/qmarliu/gopkg/ethutils"
@@ -18,33 +17,44 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-func GetAuth(ethCli *ethclient.Client, privateKey *ecdsa.PrivateKey) (auth *bind.TransactOpts, err error) {
+func GetAuth(ethCli *ethclient.Client, privateKey *ecdsa.PrivateKey, chainID *big.Int) (auth *bind.TransactOpts, err error) {
 	fromAddress, err := ethutils.GetAddressFromPrivateKey(privateKey)
 	if err != nil {
-		return
+		return auth, err
 	}
 	nonce, err := ethCli.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
-		return
+		return auth, err
 	}
-	gasPrice, err := ethCli.SuggestGasPrice(context.Background())
+	head, err := ethCli.HeaderByNumber(context.Background(), nil)
 	if err != nil {
-		return
+		return auth, err
 	}
-	auth = bind.NewKeyedTransactor(privateKey)
+	gasTipCap, err := ethCli.SuggestGasTipCap(context.Background())
+	if err != nil {
+		return auth, err
+	}
+	auth, err = bind.NewKeyedTransactorWithChainID(privateKey, chainID)
+	if err != nil {
+		return auth, err
+	}
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0) // in wei
 	auth.GasLimit = uint64(0)  // in units
-	auth.GasPrice = gasPrice
-	return
+	auth.GasTipCap = gasTipCap
+	auth.GasFeeCap = new(big.Int).Add(
+		gasTipCap,
+		new(big.Int).Mul(head.BaseFee, big.NewInt(2)),
+	)
+	return auth, err
 }
 
-func GetAuth2(ethCli *ethclient.Client, pk string) (auth *bind.TransactOpts, err error) {
+func GetAuth2(ethCli *ethclient.Client, pk string, chainID *big.Int) (auth *bind.TransactOpts, err error) {
 	privateKey, err := crypto.HexToECDSA(pk)
 	if err != nil {
 		return
 	}
-	return GetAuth(ethCli, privateKey)
+	return GetAuth(ethCli, privateKey, chainID)
 }
 
 func SignToMethodID(funcSign string) (methodID string) {
@@ -93,54 +103,26 @@ func GetAmountIn(amountOut *big.Int, reserveIn *big.Int, reserveOut *big.Int,
 	return
 }
 
-func SendEth(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, value *big.Int) (*types.Transaction, error) {
+func SendEth(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, value *big.Int, chainID *big.Int) (*types.Transaction, error) {
 
-	auth, err := GetAuth(ethCli, pk)
+	auth, err := GetAuth(ethCli, pk, chainID)
 	if err != nil {
 		return nil, err
 	}
 	auth.GasLimit = uint64(21000) // in units
 	var data []byte
-	tx := types.NewTransaction(auth.Nonce.Uint64(), to, value, auth.GasLimit, auth.GasPrice, data)
-
-	chainID, err := ethCli.NetworkID(context.Background())
-	if err != nil {
-		return nil, err
+	baseTx := &types.DynamicFeeTx{
+		To:        &to,
+		Nonce:     auth.Nonce.Uint64(),
+		GasFeeCap: auth.GasFeeCap,
+		GasTipCap: auth.GasTipCap,
+		Gas:       auth.GasLimit,
+		Value:     value,
+		Data:      data,
 	}
+	tx := types.NewTx(baseTx)
 
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), pk)
-	if err != nil {
-		return nil, err
-	}
-
-	err = ethCli.SendTransaction(context.Background(), signedTx)
-	if err != nil {
-		return nil, err
-	}
-	return signedTx, nil
-}
-
-func SendEthSubFee(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, value *big.Int) (*types.Transaction, error) {
-
-	auth, err := GetAuth(ethCli, pk)
-	if err != nil {
-		return nil, err
-	}
-	auth.GasLimit = 21000
-	feeAmount := big.NewInt(int64(auth.GasLimit))
-	feeAmount.Mul(feeAmount, auth.GasPrice)
-	if value.Cmp(feeAmount) <= 0 {
-		return nil, fmt.Errorf("手续费不够 value %v feeAmount %v", value, feeAmount)
-	}
-	var data []byte
-	tx := types.NewTransaction(auth.Nonce.Uint64(), to, value.Sub(value, feeAmount), auth.GasLimit, auth.GasPrice, data)
-
-	chainID, err := ethCli.NetworkID(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), pk)
+	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(chainID), pk)
 	if err != nil {
 		return nil, err
 	}
