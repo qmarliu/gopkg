@@ -3,6 +3,7 @@ package contracts
 import (
 	"context"
 	"crypto/ecdsa"
+	"fmt"
 	"math/big"
 
 	"github.com/qmarliu/gopkg/ethutils"
@@ -148,16 +149,39 @@ func SendEth(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, 
 func SendEthWithAuth(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, value *big.Int, chainID *big.Int, auth *bind.TransactOpts) (*types.Transaction, error) {
 
 	var data []byte
-	baseTx := &types.DynamicFeeTx{
-		To:        &to,
-		Nonce:     auth.Nonce.Uint64(),
-		GasFeeCap: auth.GasFeeCap,
-		GasTipCap: auth.GasTipCap,
-		Gas:       auth.GasLimit,
-		Value:     value,
-		Data:      data,
+	tx := types.NewTransaction(auth.Nonce.Uint64(), to, value, auth.GasLimit, auth.GasPrice, data)
+
+	chainID, err := ethCli.NetworkID(context.Background())
+	if err != nil {
+		return nil, err
 	}
-	tx := types.NewTx(baseTx)
+
+	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(chainID), pk)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ethCli.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		return nil, err
+	}
+	return signedTx, nil
+}
+
+func SendEthSubFee(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, value *big.Int, chainID *big.Int) (*types.Transaction, error) {
+
+	auth, err := GetAuth(ethCli, pk, chainID)
+	if err != nil {
+		return nil, err
+	}
+	auth.GasLimit = 21000
+	feeAmount := big.NewInt(int64(auth.GasLimit))
+	feeAmount.Mul(feeAmount, auth.GasPrice)
+	if value.Cmp(feeAmount) <= 0 {
+		return nil, fmt.Errorf("手续费不够 value %v feeAmount %v", value, feeAmount)
+	}
+	var data []byte
+	tx := types.NewTransaction(auth.Nonce.Uint64(), to, value.Sub(value, feeAmount), auth.GasLimit, auth.GasPrice, data)
 
 	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(chainID), pk)
 	if err != nil {
