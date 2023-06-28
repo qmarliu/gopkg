@@ -114,7 +114,7 @@ func SendEth(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, 
 
 func SendEthWithAuth(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, value *big.Int, chainID *big.Int, auth *bind.TransactOpts) (*types.Transaction, error) {
 
-	auth.GasLimit = uint64(21000) // in units
+	auth.GasLimit = uint64(21000)
 	var data []byte
 	baseTx := &types.DynamicFeeTx{
 		To:        &to,
