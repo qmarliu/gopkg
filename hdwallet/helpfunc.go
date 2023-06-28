@@ -73,7 +73,7 @@ func CollectionERC20(ethClient *ethclient.Client, contractAddr common.Address,
 		// log.Infof("发送手续费: %v 数量: %v", ethSendTx.Hash().String(), gasValue)
 		return ethSendTx, coinBalance, transferDone, nil //等待gas费到账
 	}
-	auth, err := contracts.GetAuth(ethClient, pk)
+	auth, err := contracts.GetAuthEip1599(ethClient, pk)
 	if err != nil {
 		return nil, coinBalance, transferDone, fmt.Errorf("GetAuth failed:" + err.Error())
 	}
@@ -145,7 +145,7 @@ func CollectionERC721(ethClient *ethclient.Client, contractAddr common.Address, 
 		}
 		return ethSendTx, transferDone, nil //等待gas费到账
 	}
-	auth, err := contracts.GetAuth(ethClient, pk)
+	auth, err := contracts.GetAuthEip1599(ethClient, pk)
 	if err != nil {
 		return nil, transferDone, fmt.Errorf("GetAuth failed:" + err.Error())
 	}

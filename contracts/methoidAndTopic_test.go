@@ -25,7 +25,7 @@ func TestPrintTopic(t *testing.T) {
 }
 
 // go test -run TestSendETH
-func TestSendETH(t *testing.T) {
+func TestSendETHEip1599(t *testing.T) {
 	pk, err := crypto.HexToECDSA("pk")
 	if err != nil {
 		t.Errorf("HexToECDSA %s\n", err.Error())
@@ -45,7 +45,7 @@ func TestSendETH(t *testing.T) {
 
 	value := decimal.NewFromBigInt(big.NewInt(2), 16).BigInt() // 0.02
 	to := common.HexToAddress("0x3D64968faa49729c0b42B444Bb220557d30Ea360")
-	tran, err := SendEth(EthClient, pk, to, value, ChainID)
+	tran, err := SendEthEip1599(EthClient, pk, to, value, ChainID)
 	if err != nil {
 		t.Errorf("sendeth %s\n", err.Error())
 		return

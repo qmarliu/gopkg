@@ -20,6 +20,38 @@ import (
 func GetAuth(ethCli *ethclient.Client, privateKey *ecdsa.PrivateKey, chainID *big.Int) (auth *bind.TransactOpts, err error) {
 	fromAddress, err := ethutils.GetAddressFromPrivateKey(privateKey)
 	if err != nil {
+		return
+	}
+	nonce, err := ethCli.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		return
+	}
+	gasPrice, err := ethCli.SuggestGasPrice(context.Background())
+	if err != nil {
+		return
+	}
+	auth, err = bind.NewKeyedTransactorWithChainID(privateKey, chainID)
+	if err != nil {
+		return auth, err
+	}
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = big.NewInt(0) // in wei
+	auth.GasLimit = uint64(0)  // in units
+	auth.GasPrice = gasPrice
+	return
+}
+
+func GetAuth2(ethCli *ethclient.Client, pk string, chainID *big.Int) (auth *bind.TransactOpts, err error) {
+	privateKey, err := crypto.HexToECDSA(pk)
+	if err != nil {
+		return
+	}
+	return GetAuth(ethCli, privateKey, chainID)
+}
+
+func GetAuthEip1599(ethCli *ethclient.Client, privateKey *ecdsa.PrivateKey, chainID *big.Int) (auth *bind.TransactOpts, err error) {
+	fromAddress, err := ethutils.GetAddressFromPrivateKey(privateKey)
+	if err != nil {
 		return auth, err
 	}
 	nonce, err := ethCli.PendingNonceAt(context.Background(), fromAddress)
@@ -49,12 +81,12 @@ func GetAuth(ethCli *ethclient.Client, privateKey *ecdsa.PrivateKey, chainID *bi
 	return auth, err
 }
 
-func GetAuth2(ethCli *ethclient.Client, pk string, chainID *big.Int) (auth *bind.TransactOpts, err error) {
+func GetAuth2Eip1599(ethCli *ethclient.Client, pk string, chainID *big.Int) (auth *bind.TransactOpts, err error) {
 	privateKey, err := crypto.HexToECDSA(pk)
 	if err != nil {
 		return
 	}
-	return GetAuth(ethCli, privateKey, chainID)
+	return GetAuthEip1599(ethCli, privateKey, chainID)
 }
 
 func SignToMethodID(funcSign string) (methodID string) {
@@ -114,6 +146,42 @@ func SendEth(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, 
 }
 
 func SendEthWithAuth(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, value *big.Int, chainID *big.Int, auth *bind.TransactOpts) (*types.Transaction, error) {
+
+	var data []byte
+	baseTx := &types.DynamicFeeTx{
+		To:        &to,
+		Nonce:     auth.Nonce.Uint64(),
+		GasFeeCap: auth.GasFeeCap,
+		GasTipCap: auth.GasTipCap,
+		Gas:       auth.GasLimit,
+		Value:     value,
+		Data:      data,
+	}
+	tx := types.NewTx(baseTx)
+
+	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(chainID), pk)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ethCli.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		return nil, err
+	}
+	return signedTx, nil
+}
+
+func SendEthEip1599(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, value *big.Int, chainID *big.Int) (*types.Transaction, error) {
+
+	auth, err := GetAuthEip1599(ethCli, pk, chainID)
+	if err != nil {
+		return nil, err
+	}
+	auth.GasLimit = uint64(21000)
+	return SendEthWithAuthEip1599(ethCli, pk, to, value, chainID, auth)
+}
+
+func SendEthWithAuthEip1599(ethCli *ethclient.Client, pk *ecdsa.PrivateKey, to common.Address, value *big.Int, chainID *big.Int, auth *bind.TransactOpts) (*types.Transaction, error) {
 
 	var data []byte
 	baseTx := &types.DynamicFeeTx{
