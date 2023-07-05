@@ -16,6 +16,7 @@ require (
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/shopspring/decimal v1.3.1
 	github.com/sirupsen/logrus v1.6.0
+	github.com/unrolled/secure v1.13.0
 	github.com/valyala/fasthttp v1.40.0
 	go.etcd.io/etcd/api/v3 v3.5.9
 	go.etcd.io/etcd/client/v3 v3.5.9

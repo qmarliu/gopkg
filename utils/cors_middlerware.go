@@ -2,8 +2,10 @@ package utils
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/unrolled/secure"
 )
 
 func CorsHandler() gin.HandlerFunc {
@@ -19,6 +21,23 @@ func CorsHandler() gin.HandlerFunc {
 		if context.Request.Method == http.MethodOptions {
 			context.JSON(http.StatusOK, "Options Request!")
 		}
+		context.Next()
+	}
+}
+
+func TlsHandler(port int) gin.HandlerFunc {
+	return func(context *gin.Context) {
+		secureMiddleware := secure.New(secure.Options{
+			SSLRedirect: true,
+			SSLHost:     ":" + strconv.Itoa(port),
+		})
+		err := secureMiddleware.Process(context.Writer, context.Request)
+
+		// If there was an error, do not continue.
+		if err != nil {
+			return
+		}
+
 		context.Next()
 	}
 }
